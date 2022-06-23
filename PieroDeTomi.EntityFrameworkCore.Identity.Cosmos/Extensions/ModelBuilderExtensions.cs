@@ -16,7 +16,9 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Extensions
             builder.ApplyConfiguration(new UserLoginEntityTypeConfiguration { });
             builder.ApplyConfiguration(new UserTokensEntityTypeConfiguration { });
             builder.ApplyConfiguration(new DeviceFlowCodesEntityTypeConfiguration { });
-            builder.ApplyConfiguration(new PersistedGrantEntityTypeConfiguration { });
+            // The following is no longer true open source. May required a license for production.
+            // See: https://modlogix.com/blog/identityserver4-alternatives-best-options-and-the-near-future-of-identityserver/
+            //builder.ApplyConfiguration(new PersistedGrantEntityTypeConfiguration { });
 
             return builder;
         }

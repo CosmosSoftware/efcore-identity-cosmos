@@ -1,18 +1,31 @@
-﻿using IdentityServer4.EntityFramework.Options;
+﻿using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Extensions;
 
 namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos
 {
-    public class CosmosIdentityDbContext<TUserEntity> : ApiAuthorizationDbContext<TUserEntity> where TUserEntity : IdentityUser
+    /// <summary>
+    /// Cosmos Identity Database Context
+    /// </summary>
+    /// <typeparam name="TUserEntity"></typeparam>
+    public class CosmosIdentityDbContext<TUserEntity> : IdentityDbContext<TUserEntity> where TUserEntity : IdentityUser
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="options"></param>
+        /// <param name="operationalStoreOptions"></param>
         public CosmosIdentityDbContext(
-            DbContextOptions options,
-            IOptions<OperationalStoreOptions> operationalStoreOptions) : base(options, operationalStoreOptions) { }
+            DbContextOptions options) : base(options) { }
 
+        /// <summary>
+        /// OnModelCreating event override.
+        /// </summary>
+        /// <param name="builder"></param>
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
