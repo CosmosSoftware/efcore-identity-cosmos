@@ -13,8 +13,7 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Extensions
         public static IdentityBuilder AddCosmosIdentity<TDbContext, TUserEntity, TRoleEntity>(
             this IServiceCollection services,
             Action<IdentityOptions> identityOptions,
-            Action<DbContextOptionsBuilder> dbContextOptions = null,
-            bool addDefaultTokenProviders = false
+            Action<DbContextOptionsBuilder> dbContextOptions = null
         )
             where TDbContext : CosmosIdentityDbContext<TUserEntity>
             where TUserEntity : IdentityUser, new()
@@ -24,11 +23,12 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Extensions
                 services.AddDbContext<TDbContext>(dbContextOptions);
 
             var builder = services
-                .AddIdentity<TUserEntity, TRoleEntity>(identityOptions)
+                .AddIdentityCore<TUserEntity>(identityOptions)
                 .AddEntityFrameworkStores<TDbContext>();
 
-            if (addDefaultTokenProviders)
-                builder.AddDefaultTokenProviders();
+            // The following is not available in .Net 6
+            //if (addDefaultTokenProviders)
+            //    builder.AddDefaultTokenProviders();
 
             // Add custom Identity stores
             services.AddTransient<IUserStore<TUserEntity>, CosmosUserStore<TUserEntity>>();

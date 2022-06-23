@@ -11,7 +11,7 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
     /// Utilities for creating Cosmos DB Containers
     /// </summary>
     /// <remarks>
-    /// This class is only ment to run when the database needs to be created, deleted or containers removed.
+    /// This class is only meant to run when the database needs to be created, deleted or containers removed.
     /// </remarks>
     public class ContainerUtilities : IDisposable
     {

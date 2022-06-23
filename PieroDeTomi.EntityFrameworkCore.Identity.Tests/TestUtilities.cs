@@ -6,12 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Repositories;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Stores;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PieroDeTomi.EntityFrameworkCore.Identity.Tests
 {
