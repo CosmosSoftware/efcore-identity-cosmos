@@ -1,8 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
@@ -17,14 +15,19 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
     {
         private readonly CosmosClient _client;
         private readonly string _databaseName;
+        private readonly bool _limitThroughput;
 
         /// <summary>
         /// Constructor that creates the database if it does not already exist.
         /// </summary>
         /// <param name="connectionString"></param>
-        /// <param name="databaseName"
+        /// <param name="databaseName"></param>
+        /// <param name="limitThroughput"></param>
         /// <param name="clientOptions"></param>
-        public ContainerUtilities(string connectionString, string databaseName, CosmosClientOptions clientOptions = null)
+        public ContainerUtilities(string connectionString,
+                                  string databaseName,
+                                  bool limitThroughput,
+                                  CosmosClientOptions clientOptions = null)
         {
 
             if (string.IsNullOrEmpty(connectionString))
@@ -35,7 +38,50 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
 
             _client = new CosmosClient(connectionString, clientOptions);
             _databaseName = databaseName;
-            _client.CreateDatabaseIfNotExistsAsync(_databaseName).Wait();
+            _limitThroughput = limitThroughput;
+        }
+
+        /// <summary>
+        /// Create a Cosmos database
+        /// </summary>
+        /// <param name="databaseName"></param>
+        /// <returns></returns>
+        public async Task<DatabaseResponse> CreateDatabaseAsync(string databaseName)
+        {
+            var result = await _client.CreateDatabaseIfNotExistsAsync(id: databaseName);
+            return result;
+        }
+
+        /// <summary>
+        /// Create all required containers with their partition key path
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Container>> CreateRequiredContainers()
+        {
+            var containers = GetRequiredContainerDefinitions();
+
+            List<Container> containerList = new List<Container>();
+
+            int? maxthroughput = _limitThroughput == true ? 80 : null;
+
+            foreach (var container in containers)
+            {
+                containerList.Add(await CreateContainerIfNotExistsAsync(container.ContainerName, container.PartitionKey, maxthroughput));
+            }
+
+            return containerList;
+        }
+
+        public async Task DeleteRequiredContainers()
+        {
+            var containers = GetRequiredContainerDefinitions();
+
+            foreach (var container in containers)
+            {
+                _ = await DeleteContainerIfExists(container.ContainerName);
+                if (_limitThroughput)
+                    Task.Delay(1000).Wait();
+            }
         }
 
         /// <summary>
@@ -52,9 +98,20 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
 
             var database = _client.GetDatabase(databaseName);
 
-            var response = await database.DeleteAsync();
+            try
+            {
+                var response = await database.DeleteAsync();
 
-            return response;
+                return response;
+            }
+            catch (Exception e)
+            {
+                if (e.Message.Contains("NotFound (404)"))
+                {
+                    return null;
+                }
+                throw;
+            }
         }
 
         /// <summary>
@@ -66,7 +123,7 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<Container> CreateContainerIfNotExistsAsync(string containerName, string partitionKeyPath, int? throughput)
+        public async Task<Container> CreateContainerIfNotExistsAsync(string containerName, string partitionKeyPath, int? throughput = null)
         {
             if (string.IsNullOrEmpty(containerName))
                 throw new ArgumentNullException(nameof(containerName));
@@ -77,31 +134,64 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers
             if (!partitionKeyPath.StartsWith("/"))
                 throw new ArgumentException(nameof(partitionKeyPath), "Path must begin with /");
 
-            var database = _client.GetDatabase(_databaseName);
+            try
+            {
+                Container container = await _client.GetDatabase(_databaseName).CreateContainerIfNotExistsAsync(
+                        id: containerName,
+                        partitionKeyPath: partitionKeyPath, throughput);
+                return container;
+            }
+            catch (Microsoft.Azure.Cosmos.CosmosException c)
+            {
+                var d = c;
+                throw;
+            }
+            catch (Exception e)
+            {
+                var t = e;
+                throw;
+            }
 
-            Container container = await database.CreateContainerIfNotExistsAsync(
-                    id: containerName,
-                    partitionKeyPath: partitionKeyPath,
-                    throughput: throughput);
-
-            return container;
         }
 
         /// <summary>
         /// Deletes a container
         /// </summary>
         /// <param name="containerName"></param>
-        /// <returns></returns>
+        /// <returns>success</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public async Task<ContainerResponse> DeleteContainerIfExists(string containerName)
+        public async Task<bool> DeleteContainerIfExists(string containerName)
         {
             if (string.IsNullOrEmpty(containerName))
                 throw new ArgumentNullException(nameof(containerName));
 
             var database = _client.GetDatabase(_databaseName);
             var container = database.GetContainer(containerName);
-            var response = await container.DeleteContainerAsync();
-            return response;
+
+            ContainerResponse response = null;
+            try
+            {
+                response = await container.DeleteContainerAsync();
+            }
+            catch (Exception e)
+            {
+                if (e.Message.Contains("NotFound (404)"))
+                {
+                    return true;
+                }
+                throw;
+            }
+
+            switch (response.StatusCode)
+            {
+                case System.Net.HttpStatusCode.OK:
+                    return true;
+                case System.Net.HttpStatusCode.Unauthorized:
+                case System.Net.HttpStatusCode.Forbidden:
+                    throw new UnauthorizedAccessException(containerName);
+                default:
+                    throw new Exception(response.StatusCode.ToString());
+            }
         }
 
         /// <summary>

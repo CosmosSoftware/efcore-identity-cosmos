@@ -27,8 +27,4 @@
     <ProjectReference Include="..\PieroDeTomi.EntityFrameworkCore.Identity.Cosmos\PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Mangers\" />
-  </ItemGroup>
-
 </Project>

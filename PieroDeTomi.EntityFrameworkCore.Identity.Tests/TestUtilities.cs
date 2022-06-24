@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos;
+using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Containers;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Repositories;
 using PieroDeTomi.EntityFrameworkCore.Identity.Cosmos.Stores;
 using System.Reflection;
@@ -15,7 +16,7 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Tests
         private IConfigurationRoot? _configuration;
 
         /// <summary>
-        /// Non-mormalized email address for user 1
+        /// Non-normalized email address for user 1
         /// </summary>
         public const string IDENUSER1EMAIL = "Foo1@acme.com";
         /// <summary>
@@ -26,6 +27,7 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Tests
 
         public const string IDENUSER1ID = "507b7565-493e-49d7-94c7-d60e21036b4a";
         public const string IDENUSER2ID = "55250c6f-7c91-465a-a9ce-ea9bbe6caf81";
+        public const string DATABASENAME = "cosmosdb";
 
         /// <summary>
         /// Gets the configuration
@@ -86,9 +88,21 @@ namespace PieroDeTomi.EntityFrameworkCore.Identity.Tests
             var config = GetConfig();
             var connectionString = config.GetConnectionString("ApplicationDbContextConnection");
             var builder = new DbContextOptionsBuilder();
-            builder.UseCosmos(connectionString, "cosmosdb");
+            builder.UseCosmos(connectionString, TestUtilities.DATABASENAME);
 
             return builder.Options;
+        }
+
+        /// <summary>
+        /// Gets an instance of the container utilities
+        /// </summary>
+        /// <returns></returns>
+        public ContainerUtilities GetContainerUtilities()
+        {
+            var config = GetConfig();
+            var connectionString = config.GetConnectionString("ApplicationDbContextConnection");
+            var utilities = new ContainerUtilities(connectionString, TestUtilities.DATABASENAME, true);
+            return utilities;
         }
 
         /// <summary>
